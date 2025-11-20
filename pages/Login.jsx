@@ -1,13 +1,52 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Package, LogIn } from 'lucide-react';
+import { ALLOWED_ROLES, LOGIN_APP_NAME, loginUser } from '../src/services/authService';
 
 const Login = ({ onLogin }) => {
-    const [email, setEmail] = useState('');
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSubmit = (e) => {
+    const nextPath = useMemo(() => {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('next');
+    }, []);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        // Simulamos usuario
-        onLogin({ name: 'Admin', email: email });
+        setError('');
+        setIsLoading(true);
+
+        const result = await loginUser({ username, password, next: nextPath });
+        setIsLoading(false);
+
+        if (!result.ok) {
+            setError(result.message);
+            return;
+        }
+
+        const { data } = result;
+        const roleAllowed = ALLOWED_ROLES.includes(data?.role);
+        const isAppAllowed = data?.app_name === LOGIN_APP_NAME;
+
+        if (!roleAllowed) {
+            setError('No tienes permisos de Admin o Responsable para ingresar.');
+            return;
+        }
+
+        if (!isAppAllowed) {
+            setError('Tu usuario no está habilitado para acceder a esta aplicación.');
+            return;
+        }
+
+        onLogin({
+            name: data.display_name || data.username,
+            username: data.username,
+            userKind: data.user_kind,
+            role: data.role,
+            appName: data.app_name,
+        });
     };
 
     return (
@@ -22,15 +61,20 @@ const Login = ({ onLogin }) => {
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-sm text-slate-600">
+                        <p><strong>Nombre de la App:</strong> {LOGIN_APP_NAME}</p>
+                        <p><strong>Intentos permitidos:</strong> 3 fallidos antes de bloqueo.</p>
+                    </div>
+
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Usuario / Email</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Usuario</label>
                         <input
-                            type="email"
+                            type="text"
                             required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
                             className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
-                            placeholder="admin@empresa.com"
+                            placeholder="ej: jdoe"
                         />
                     </div>
                     <div>
@@ -38,19 +82,29 @@ const Login = ({ onLogin }) => {
                         <input
                             type="password"
                             required
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
                             className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
                             placeholder="••••••••"
                         />
                     </div>
+
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-3">
+                            {error}
+                        </div>
+                    )}
+
                     <button
                         type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        disabled={isLoading}
+                        className={`w-full text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 ${isLoading ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'}`}
                     >
                         <LogIn size={20} />
-                        Ingresar al Sistema
+                        {isLoading ? 'Validando...' : 'Ingresar al Sistema'}
                     </button>
                     <p className="text-center text-xs text-slate-400 mt-4">
-                        Versión Demo v1.0
+                        El acceso requiere rol SuperAdmin, Admin o Responsable.
                     </p>
                 </form>
             </div>
