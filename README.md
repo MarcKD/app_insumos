@@ -1,6 +1,6 @@
-📦 StockMaster - Sistema de Gestión de Insumos
+📦 app-insumos
 
-Bienvenido al repositorio de StockMaster, una aplicación web moderna diseñada para optimizar el control de inventario, gestión de stock y pedidos de insumos empresariales.
+Bienvenido al repositorio de app-insumos, una aplicación web moderna diseñada para optimizar el control de inventario, gestión de stock y pedidos de insumos empresariales.
 
 🚀 Características Principales
 
