@@ -27,13 +27,7 @@ const Login = ({ onLogin }) => {
         }
 
         const { data } = result;
-        const roleAllowed = ALLOWED_ROLES.includes(data?.role);
-        const isAppAllowed = data?.app_name === LOGIN_APP_NAME;
-
-        if (!roleAllowed) {
-            setError('No tienes permisos de Admin o Responsable para ingresar.');
-            return;
-        }
+        const isAppAllowed = data?.appName === LOGIN_APP_NAME;
 
         if (!isAppAllowed) {
             setError('Tu usuario no está habilitado para acceder a esta aplicación.');
@@ -45,7 +39,7 @@ const Login = ({ onLogin }) => {
             username: data.username,
             userKind: data.user_kind,
             role: data.role,
-            appName: data.app_name,
+            appName: data.appName,
         });
     };
 

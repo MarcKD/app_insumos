@@ -2,15 +2,10 @@ export const LOGIN_APP_NAME = 'app-insumos';
 export const ALLOWED_ROLES = ['SuperAdmin', 'Admin', 'Responsable'];
 
 const LOGIN_ENDPOINT = '/app/login';
+const BACKEND_URL = 'http://localhost:3001';
 
-const buildLoginUrl = (next) => {
-  if (!next) return LOGIN_ENDPOINT;
-  const params = new URLSearchParams({ next });
-  return `${LOGIN_ENDPOINT}?${params.toString()}`;
-};
-
-export const loginUser = async ({ username, password, next }) => {
-  const url = buildLoginUrl(next);
+export const loginUser = async ({ username, password }) => {
+  const url = `${BACKEND_URL}${LOGIN_ENDPOINT}`;
 
   try {
     const response = await fetch(url, {
@@ -26,24 +21,17 @@ export const loginUser = async ({ username, password, next }) => {
       return { ok: true, data };
     }
 
-    let message = 'Error de autenticación. Intenta nuevamente.';
+    let message = data?.message || 'Error de autenticación. Intenta nuevamente.';
 
-    switch (response.status) {
-      case 401:
-        message = 'Usuario o contraseña incorrectos.';
-        break;
-      case 403:
-        message = 'No tienes permisos para ingresar a esta aplicación.';
-        break;
-      case 423:
-        message = 'Tu cuenta está bloqueada por intentos fallidos. Contacta a un administrador.';
-        break;
-      default:
-        message = 'No se pudo procesar la solicitud en este momento.';
+    // The backend now sends specific error messages, so we can use them directly.
+    // The switch statement can be simplified.
+    if (response.status === 401) {
+      message = data?.message || 'Usuario o contraseña incorrectos.';
     }
 
     return { ok: false, status: response.status, message, data };
   } catch (error) {
+    console.error('Login error:', error);
     return {
       ok: false,
       status: null,
