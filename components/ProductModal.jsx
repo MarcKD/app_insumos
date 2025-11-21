@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 
 const ProductModal = ({ isOpen, onClose, onSubmit }) => {
@@ -11,6 +11,24 @@ const ProductModal = ({ isOpen, onClose, onSubmit }) => {
         max: '',
         area: ''
     });
+    const [areas, setAreas] = useState([]);
+
+    useEffect(() => {
+        if (isOpen) {
+            const fetchAreas = async () => {
+                try {
+                    const response = await fetch('http://localhost:3001/api/areas');
+                    if (response.ok) {
+                        const data = await response.json();
+                        setAreas(data);
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch areas:", error);
+                }
+            };
+            fetchAreas();
+        }
+    }, [isOpen]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -52,7 +70,19 @@ const ProductModal = ({ isOpen, onClose, onSubmit }) => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Área</label>
-                            <input name="area" value={newItem.area} onChange={handleInputChange} className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
+                            <select
+                                name="area"
+                                value={newItem.area}
+                                onChange={handleInputChange}
+                                className="w-full p-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                            >
+                                <option value="">Seleccionar Área</option>
+                                {areas.map((area) => (
+                                    <option key={area.id} value={area.nombre}>
+                                        {area.nombre}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-slate-700 mb-1">Stock Inicial</label>

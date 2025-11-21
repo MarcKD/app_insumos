@@ -50,8 +50,8 @@ const Login = ({ onLogin }) => {
                     <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
                         <Package className="text-white" size={32} />
                     </div>
-                    <h1 className="text-2xl font-bold text-white">APP_INSUMOS</h1>
-                    <p className="text-blue-100 text-sm mt-2">Gestión inteligente de insumos</p>
+                    <h1 className="text-2xl font-bold text-white">app-insumos</h1>
+                    <p className="text-blue-100 text-sm mt-2">Gestión de insumos</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="p-8 space-y-6">

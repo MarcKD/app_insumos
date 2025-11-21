@@ -1,6 +1,6 @@
-📦 APP_INSUMOS
+📦 app-insumos
 
-Bienvenido al repositorio de APP_INSUMOS, una aplicación web moderna diseñada para optimizar el control de inventario, gestión de stock y pedidos de insumos empresariales.
+Bienvenido al repositorio de app-insumos, una aplicación web moderna diseñada para optimizar el control de inventario, gestión de stock y pedidos de insumos empresariales.
 
 🚀 Características Principales
 

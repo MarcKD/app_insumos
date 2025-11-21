@@ -18,8 +18,199 @@ const pool = new Pool({
     port: 5432,
 });
 
+const insumosPool = new Pool({
+    host: 'wstd.com.ar',
+    database: 'insumos_db',
+    user: 'wstd',
+    password: 'Wstd.admin.1822',
+    port: 5432,
+});
+
 // --- Helper to decode Base64 ---
 const decodeBase64 = (encoded) => Buffer.from(encoded, 'base64').toString('utf-8');
+
+// --- Products API Endpoints ---
+app.get('/api/productos', async (req, res) => {
+    try {
+        const result = await insumosPool.query('SELECT * FROM productos ORDER BY id DESC');
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+app.post('/api/productos', async (req, res) => {
+    const { code, description, provider, stock, min, max, area } = req.body;
+
+    if (!description || !code || !stock) {
+        return res.status(400).json({ message: 'Descripción, código y stock son requeridos.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO productos (code, description, provider, stock, min, max, area)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING *;
+        `;
+        const values = [code, description, provider, Number(stock) || 0, Number(min) || 0, Number(max) || 0, area];
+
+        const result = await insumosPool.query(query, values);
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error creating product:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+
+// --- Stock Update Endpoint ---
+app.put('/api/productos/:id/stock', async (req, res) => {
+    const { id } = req.params;
+    const { change, usuario, area } = req.body; // change: +1 or -1
+
+    if (!change || !usuario) {
+        return res.status(400).json({ message: 'Cambio y usuario son requeridos.' });
+    }
+
+    let client;
+    try {
+        client = await insumosPool.connect();
+        await client.query('BEGIN');
+
+        // 1. Get current product
+        const productRes = await client.query('SELECT * FROM productos WHERE id = $1', [id]);
+        if (productRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: 'Producto no encontrado.' });
+        }
+        const product = productRes.rows[0];
+        const currentStock = product.stock;
+        const newStock = currentStock + change;
+
+        // 2. Update product
+        await client.query('UPDATE productos SET stock = $1 WHERE id = $2', [newStock, id]);
+
+        // 3. Insert into historial
+        await client.query(`
+            INSERT INTO historial (producto_id, usuario, cantidad_anterior, cantidad_nueva, area)
+            VALUES ($1, $2, $3, $4, $5)
+        `, [id, usuario, currentStock, newStock, area || product.area]);
+
+        await client.query('COMMIT');
+
+        res.status(200).json({ message: 'Stock actualizado', newStock });
+    } catch (error) {
+        if (client) await client.query('ROLLBACK');
+        console.error('Error updating stock:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    } finally {
+        if (client) client.release();
+    }
+});
+
+// --- Areas Endpoint ---
+app.get('/api/areas', async (req, res) => {
+    try {
+        const result = await insumosPool.query('SELECT * FROM areas ORDER BY nombre ASC');
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching areas:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// --- History Endpoint ---
+app.get('/api/historial', async (req, res) => {
+    try {
+        const query = `
+            SELECT h.*, p.description as producto_descripcion, p.code as producto_codigo
+            FROM historial h
+            JOIN productos p ON h.producto_id = p.id
+            ORDER BY h.fecha DESC
+        `;
+        const result = await insumosPool.query(query);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching history:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+// --- Statistics Endpoint ---
+app.get('/api/estadisticas/consumo', async (req, res) => {
+    const { search, area, startDate, endDate } = req.query;
+
+    try {
+        let queryParams = [];
+        let paramIndex = 1;
+
+        // Date filtering for the subquery
+        let dateCondition = '';
+        if (startDate && endDate) {
+            dateCondition = `AND h.fecha BETWEEN $${paramIndex} AND $${paramIndex + 1}`;
+            queryParams.push(startDate, endDate);
+            paramIndex += 2;
+        } else if (startDate) {
+            dateCondition = `AND h.fecha >= $${paramIndex}`;
+            queryParams.push(startDate);
+            paramIndex++;
+        } else if (endDate) {
+            dateCondition = `AND h.fecha <= $${paramIndex}`;
+            queryParams.push(endDate);
+            paramIndex++;
+        }
+
+        // Main query filtering
+        let whereConditions = [];
+        if (search) {
+            whereConditions.push(`(p.description ILIKE $${paramIndex} OR p.code ILIKE $${paramIndex})`);
+            queryParams.push(`%${search}%`);
+            paramIndex++;
+        }
+        if (area) {
+            whereConditions.push(`p.area = $${paramIndex}`);
+            queryParams.push(area);
+            paramIndex++;
+        }
+
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+
+        const query = `
+            SELECT
+                p.id,
+                p.code,
+                p.description,
+                p.area,
+                p.stock,
+                COALESCE(c.total_consumo, 0) as total_consumo
+            FROM
+                productos p
+            LEFT JOIN (
+                SELECT
+                    producto_id,
+                    SUM(cantidad_anterior - cantidad_nueva) as total_consumo
+                FROM
+                    historial h
+                WHERE
+                    cantidad_nueva < cantidad_anterior
+                    ${dateCondition}
+                GROUP BY
+                    producto_id
+            ) c ON p.id = c.producto_id
+            ${whereClause}
+            ORDER BY
+                total_consumo DESC, p.description ASC;
+        `;
+        
+        const result = await insumosPool.query(query, queryParams);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching consumption stats:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
 
 // --- Login Endpoint ---
 app.post('/app/login', async (req, res) => {
@@ -79,12 +270,12 @@ app.post('/app/login', async (req, res) => {
 
         if (userType === 'internal') {
             roleQuery = 'SELECT role FROM app_user_roles WHERE internal_user_id = $1 AND application_name = $2';
-            queryParams = [user.id, 'APP_INSUMOS'];
+            queryParams = [user.id, 'app-insumos'];
         } else { // userType === 'odoo'
             roleQuery = 'SELECT role FROM app_user_roles WHERE odoo_user_id = $1 AND application_name = $2';
-            queryParams = [user.id, 'APP_INSUMOS'];
+            queryParams = [user.id, 'app-insumos'];
         }
-        
+
         const roleResult = await client.query(roleQuery, queryParams);
 
         if (roleResult.rows.length > 0) {
@@ -96,8 +287,8 @@ app.post('/app/login', async (req, res) => {
         const userData = {
             ...user,
             role: role,
-            appName: 'APP_INSUMOS', // As requested
-            display_name: user.username 
+            appName: 'app-insumos', // As requested
+            display_name: user.username
         };
 
         res.status(200).json(userData);

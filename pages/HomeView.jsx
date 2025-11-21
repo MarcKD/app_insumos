@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Search, Plus, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Image as ImageIcon, ChevronUp, ChevronDown } from 'lucide-react';
 
-const HomeView = ({ inventory, onAddClick }) => {
+const HomeView = ({ inventory, onAddClick, onStockUpdate }) => {
     const [searchTerm, setSearchTerm] = useState('');
 
     // Lógica de filtrado local
@@ -65,10 +65,26 @@ const HomeView = ({ inventory, onAddClick }) => {
                                     <td className="p-4 font-medium text-slate-900">{item.description}</td>
                                     <td className="p-4 text-slate-500">{item.provider}</td>
                                     <td className="p-4 text-center">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.stock <= item.min ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                                            }`}>
-                                            {item.stock}
-                                        </span>
+                                        <div className="flex items-center justify-center gap-2">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${item.stock <= item.min ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                                                }`}>
+                                                {item.stock}
+                                            </span>
+                                            <div className="flex flex-col">
+                                                <button
+                                                    onClick={() => onStockUpdate(item.id, 1)}
+                                                    className="text-slate-400 hover:text-blue-600 p-0.5 rounded hover:bg-blue-50 transition-colors"
+                                                >
+                                                    <ChevronUp size={14} />
+                                                </button>
+                                                <button
+                                                    onClick={() => onStockUpdate(item.id, -1)}
+                                                    className="text-slate-400 hover:text-red-600 p-0.5 rounded hover:bg-red-50 transition-colors"
+                                                >
+                                                    <ChevronDown size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td className="p-4 text-center text-xs text-slate-500">{item.min} - {item.max}</td>
                                     <td className="p-4"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">{item.area}</span></td>

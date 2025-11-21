@@ -1,0 +1,12 @@
+{
+  "stack": "error: no existe la columna «code» en la relación «productos»\n    at C:\\Users\\wstd\\Desktop\\APPS_MARCO\\app_insumos\\node_modules\\pg-pool\\index.js:45:11\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async verifyBackendLogic (C:\\Users\\wstd\\Desktop\\APPS_MARCO\\app_insumos\\verify_backend.cjs:48:30)",
+  "message": "no existe la columna «code» en la relación «productos»",
+  "length": 133,
+  "name": "error",
+  "severity": "ERROR",
+  "code": "42703",
+  "position": "37",
+  "file": "parse_target.c",
+  "line": "1070",
+  "routine": "checkInsertTargets"
+}
