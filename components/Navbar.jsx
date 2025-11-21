@@ -23,7 +23,7 @@ const Navbar = ({ activeTab, setActiveTab, itemsToOrderCount, user, onLogout }) 
         <div className="bg-slate-900 text-white p-4 shadow-lg sticky top-0 z-10">
             <div className="container mx-auto flex justify-between items-center">
                 <h1 className="text-xl font-bold flex items-center gap-2">
-                    <Package className="text-blue-400" /> StockMaster
+                    <Package className="text-blue-400" /> APP_INSUMOS
                 </h1>
 
                 <nav className="hidden md:flex gap-6">

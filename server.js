@@ -79,10 +79,10 @@ app.post('/app/login', async (req, res) => {
 
         if (userType === 'internal') {
             roleQuery = 'SELECT role FROM app_user_roles WHERE internal_user_id = $1 AND application_name = $2';
-            queryParams = [user.id, 'app-insumos'];
+            queryParams = [user.id, 'APP_INSUMOS'];
         } else { // userType === 'odoo'
             roleQuery = 'SELECT role FROM app_user_roles WHERE odoo_user_id = $1 AND application_name = $2';
-            queryParams = [user.id, 'app-insumos'];
+            queryParams = [user.id, 'APP_INSUMOS'];
         }
         
         const roleResult = await client.query(roleQuery, queryParams);
@@ -96,7 +96,7 @@ app.post('/app/login', async (req, res) => {
         const userData = {
             ...user,
             role: role,
-            appName: 'app-insumos', // As requested
+            appName: 'APP_INSUMOS', // As requested
             display_name: user.username 
         };
 

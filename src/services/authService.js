@@ -1,4 +1,4 @@
-export const LOGIN_APP_NAME = 'app-insumos';
+export const LOGIN_APP_NAME = 'APP_INSUMOS';
 export const ALLOWED_ROLES = ['SuperAdmin', 'Admin', 'Responsable'];
 
 const LOGIN_ENDPOINT = '/app/login';
