@@ -7,6 +7,8 @@ import OrderView from '../pages/OrderView';
 import HistoryView from '../pages/HistoryView';
 import EstadisticoView from '../pages/EstadisticoView';
 
+import { Toaster, toast } from 'react-hot-toast';
+
 import { API_BASE_URL } from './config';
 
 const App = () => {
@@ -21,9 +23,11 @@ const App = () => {
 
   // --- Estado de la Navegación ---
   const [activeTab, setActiveTab] = useState('inicio');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // --- Estado del Modal ---
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null); // Estado para el producto en edición
 
   // --- Estado de Datos ---
   const [inventory, setInventory] = useState([]);
@@ -39,7 +43,7 @@ const App = () => {
       setInventory(data);
     } catch (error) {
       console.error("Failed to fetch inventory:", error);
-      // Optionally, set an error state to show in the UI
+      toast.error('No se pudo cargar el inventario.');
     }
   };
 
@@ -48,6 +52,11 @@ const App = () => {
       fetchInventory();
     }
   }, [isAuthenticated]);
+
+  // Reset page when tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
 
   // --- Lógica de "A Pedir" (Global para el Badge) ---
   const itemsToOrder = inventory.filter(item => item.stock <= item.min).map(item => ({
@@ -60,6 +69,7 @@ const App = () => {
     setUser(userData);
     setIsAuthenticated(true);
     localStorage.setItem('app_insumos_user', JSON.stringify(userData));
+    toast.success(`Bienvenido, ${userData.username}!`);
   };
 
   const handleLogout = () => {
@@ -67,30 +77,42 @@ const App = () => {
     setUser(null);
     setInventory([]); // Clear inventory on logout
     localStorage.removeItem('app_insumos_user');
+    toast('Sesión cerrada.', { icon: '👋' });
   };
 
-  const handleAddProduct = async (newItemData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/productos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newItemData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create product');
+  const handleModalSubmit = async (productData) => {
+    const promise = new Promise(async (resolve, reject) => {
+      try {
+        let response;
+        if (editingProduct) {
+          response = await fetch(`${API_BASE_URL}/api/productos/${editingProduct.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productData),
+          });
+          if (!response.ok) throw new Error('Failed to update product');
+        } else {
+          response = await fetch(`${API_BASE_URL}/api/productos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(productData),
+          });
+          if (!response.ok) throw new Error('Failed to create product');
+        }
+        await fetchInventory();
+        handleCloseModal();
+        resolve(editingProduct ? 'Insumo actualizado' : 'Insumo creado');
+      } catch (error) {
+        console.error("Failed to submit product:", error);
+        reject(error);
       }
+    });
 
-      // Refresh inventory from server to get the latest list
-      await fetchInventory();
-      setIsModalOpen(false); // Close modal on success
-
-    } catch (error) {
-      console.error("Failed to add product:", error);
-      // Optionally, show an error message to the user
-    }
+    toast.promise(promise, {
+      loading: 'Guardando...',
+      success: (message) => `${message} correctamente!`,
+      error: 'Ocurrió un error al guardar.',
+    });
   };
 
   const handleStockUpdate = async (id, change) => {
@@ -98,9 +120,7 @@ const App = () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/productos/${id}/stock`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           change,
           usuario: user.username || user.display_name || 'Usuario',
@@ -109,13 +129,25 @@ const App = () => {
       });
 
       if (response.ok) {
-        await fetchInventory(); // Refresh to show new stock
+        await fetchInventory();
       } else {
-        console.error("Failed to update stock");
+        const errorData = await response.json();
+        toast.error(`Error: ${errorData.message || 'No se pudo actualizar el stock.'}`);
       }
     } catch (error) {
       console.error("Error updating stock:", error);
+      toast.error('Error de conexión al actualizar stock.');
     }
+  };
+  
+  const handleEditClick = (product) => {
+    setEditingProduct(product);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingProduct(null);
   };
 
   // --- Renderizado Condicional ---
@@ -125,6 +157,7 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans">
+      <Toaster position="top-right" reverseOrder={false} />
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -139,6 +172,9 @@ const App = () => {
             inventory={inventory}
             onAddClick={() => setIsModalOpen(true)}
             onStockUpdate={handleStockUpdate}
+            onEditClick={handleEditClick}
+            currentPage={currentPage}
+            onPageChange={setCurrentPage}
           />
         )}
 
@@ -152,8 +188,9 @@ const App = () => {
 
       <ProductModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleAddProduct}
+        onClose={handleCloseModal}
+        onSubmit={handleModalSubmit}
+        productToEdit={editingProduct}
       />
     </div>
   );

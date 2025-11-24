@@ -63,6 +63,37 @@ app.post('/api/productos', async (req, res) => {
     }
 });
 
+app.put('/api/productos/:id', async (req, res) => {
+    const { id } = req.params;
+    const { code, description, provider, min, max, area } = req.body;
+
+    if (!description || !code) {
+        return res.status(400).json({ message: 'Descripción y código son requeridos.' });
+    }
+
+    try {
+        const query = `
+            UPDATE productos
+            SET code = $1, description = $2, provider = $3, min = $4, max = $5, area = $6
+            WHERE id = $7
+            RETURNING *;
+        `;
+        const values = [code, description, provider, Number(min) || 0, Number(max) || 0, area, id];
+
+        const result = await insumosPool.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Producto no encontrado.' });
+        }
+
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error updating product:', error);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+});
+
+
 
 // --- Stock Update Endpoint ---
 app.put('/api/productos/:id/stock', async (req, res) => {

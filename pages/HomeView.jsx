@@ -1,19 +1,34 @@
-import React, { useState } from 'react';
-import { Search, Plus, Image as ImageIcon, ChevronUp, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Image as ImageIcon, ChevronUp, ChevronDown, Pencil } from 'lucide-react';
+import Pagination from '../components/Pagination';
 
-const HomeView = ({ inventory, onAddClick, onStockUpdate }) => {
+const HomeView = ({ inventory, onAddClick, onStockUpdate, onEditClick, currentPage, onPageChange }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const itemsPerPage = 9;
+
+    // Effect to reset page when search term changes
+    useEffect(() => {
+        if (currentPage !== 1) {
+            onPageChange(1);
+        }
+    }, [searchTerm]);
 
     // Lógica de filtrado local
     const filteredInventory = inventory.filter(item => {
         const term = searchTerm.toLowerCase();
         return (
-            item.description.toLowerCase().includes(term) ||
-            item.provider.toLowerCase().includes(term) ||
-            item.area.toLowerCase().includes(term) ||
-            item.code.toLowerCase().includes(term)
+            (item.description && item.description.toLowerCase().includes(term)) ||
+            (item.provider && item.provider.toLowerCase().includes(term)) ||
+            (item.area && item.area.toLowerCase().includes(term)) ||
+            (item.code && item.code.toLowerCase().includes(term))
         );
     });
+
+    // Lógica de paginación
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredInventory.slice(indexOfFirstItem, indexOfLastItem);
+    const totalItems = filteredInventory.length;
 
     return (
         <div className="container mx-auto p-4 md:p-6 animate-fade-in">
@@ -51,10 +66,11 @@ const HomeView = ({ inventory, onAddClick, onStockUpdate }) => {
                                 <th className="p-4 font-semibold text-center">Stock</th>
                                 <th className="p-4 font-semibold text-center text-xs text-slate-400">Rango (Min-Max)</th>
                                 <th className="p-4 font-semibold">Área</th>
+                                <th className="p-4 font-semibold text-right">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredInventory.map((item) => (
+                            {currentItems.map((item) => (
                                 <tr key={item.id} className="hover:bg-slate-50 transition-colors text-sm text-slate-700">
                                     <td className="p-4">
                                         <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400">
@@ -88,12 +104,33 @@ const HomeView = ({ inventory, onAddClick, onStockUpdate }) => {
                                     </td>
                                     <td className="p-4 text-center text-xs text-slate-500">{item.min} - {item.max}</td>
                                     <td className="p-4"><span className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs">{item.area}</span></td>
+                                    <td className="p-4 text-right">
+                                        <button
+                                            onClick={() => onEditClick(item)}
+                                            className="text-slate-400 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50 transition-colors"
+                                            title="Editar Insumo"
+                                        >
+                                            <Pencil size={16} />
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
+                     {totalItems === 0 && (
+                        <div className="p-8 text-center text-slate-500">
+                            No se encontraron insumos con ese criterio de búsqueda.
+                        </div>
+                    )}
                 </div>
             </div>
+            
+            <Pagination
+                itemsPerPage={itemsPerPage}
+                totalItems={totalItems}
+                currentPage={currentPage}
+                onPageChange={onPageChange}
+            />
         </div>
     );
 };

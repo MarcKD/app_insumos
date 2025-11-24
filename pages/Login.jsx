@@ -1,11 +1,11 @@
 import React, { useMemo, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { Package, LogIn } from 'lucide-react';
 import { ALLOWED_ROLES, LOGIN_APP_NAME, loginUser } from '../src/services/authService';
 
 const Login = ({ onLogin }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const nextPath = useMemo(() => {
@@ -15,14 +15,13 @@ const Login = ({ onLogin }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
         setIsLoading(true);
 
         const result = await loginUser({ username, password, next: nextPath });
         setIsLoading(false);
 
         if (!result.ok) {
-            setError(result.message);
+            toast.error(result.message || 'Error de autenticación.');
             return;
         }
 
@@ -30,10 +29,11 @@ const Login = ({ onLogin }) => {
         const isAppAllowed = data?.appName === LOGIN_APP_NAME;
 
         if (!isAppAllowed) {
-            setError('Tu usuario no está habilitado para acceder a esta aplicación.');
+            toast.error('Tu usuario no está habilitado para acceder a esta aplicación.');
             return;
         }
 
+        // onLogin will be called, which already shows a success toast in App.jsx
         onLogin({
             name: data.display_name || data.username,
             username: data.username,
@@ -82,12 +82,6 @@ const Login = ({ onLogin }) => {
                             placeholder="••••••••"
                         />
                     </div>
-
-                    {error && (
-                        <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg p-3">
-                            {error}
-                        </div>
-                    )}
 
                     <button
                         type="submit"
