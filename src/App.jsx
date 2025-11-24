@@ -7,7 +7,7 @@ import OrderView from '../pages/OrderView';
 import HistoryView from '../pages/HistoryView';
 import EstadisticoView from '../pages/EstadisticoView';
 
-const API_URL = 'http://localhost:3001';
+import { API_BASE_URL } from './config';
 
 const App = () => {
   // --- Estado de Autenticación ---
@@ -31,7 +31,7 @@ const App = () => {
   // --- Fetch Inventory ---
   const fetchInventory = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/productos`);
+      const response = await fetch(`${API_BASE_URL}/api/productos`);
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
@@ -71,7 +71,7 @@ const App = () => {
 
   const handleAddProduct = async (newItemData) => {
     try {
-      const response = await fetch(`${API_URL}/api/productos`, {
+      const response = await fetch(`${API_BASE_URL}/api/productos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ const App = () => {
   const handleStockUpdate = async (id, change) => {
     if (!user) return;
     try {
-      const response = await fetch(`${API_URL}/api/productos/${id}/stock`, {
+      const response = await fetch(`${API_BASE_URL}/api/productos/${id}/stock`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

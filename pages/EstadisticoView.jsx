@@ -1,3 +1,4 @@
+import { API_BASE_URL } from '../src/config';
 import React, { useState, useEffect, useCallback } from 'react';
 import { BarChart3, TrendingDown, Search, XCircle } from 'lucide-react';
 import { useDebounce } from '../src/hooks/useDebounce';
@@ -19,7 +20,7 @@ const EstadisticoView = () => {
     useEffect(() => {
         const fetchAreas = async () => {
             try {
-                const response = await fetch('http://localhost:3001/api/areas');
+                const response = await fetch(`${API_BASE_URL}/api/areas`);
                 if (response.ok) {
                     const data = await response.json();
                     setAreas(data);
@@ -41,7 +42,7 @@ const EstadisticoView = () => {
         if (endDate) params.append('endDate', endDate);
 
         try {
-            const response = await fetch(`http://localhost:3001/api/estadisticas/consumo?${params.toString()}`);
+            const response = await fetch(`${API_BASE_URL}/api/estadisticas/consumo?${params.toString()}`);
             if (response.ok) {
                 const data = await response.json();
                 setStats(data);

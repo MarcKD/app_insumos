@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../src/config';
 import { X, Save } from 'lucide-react';
 
 const ProductModal = ({ isOpen, onClose, onSubmit }) => {
@@ -17,7 +18,7 @@ const ProductModal = ({ isOpen, onClose, onSubmit }) => {
         if (isOpen) {
             const fetchAreas = async () => {
                 try {
-                    const response = await fetch('http://localhost:3001/api/areas');
+                    const response = await fetch(`${API_BASE_URL}/api/areas`);
                     if (response.ok) {
                         const data = await response.json();
                         setAreas(data);

@@ -1,11 +1,12 @@
 export const LOGIN_APP_NAME = 'app-insumos';
 export const ALLOWED_ROLES = ['SuperAdmin', 'Admin', 'Responsable'];
 
+import { API_BASE_URL } from '../config';
+
 const LOGIN_ENDPOINT = '/app/login';
-const BACKEND_URL = 'http://localhost:3001';
 
 export const loginUser = async ({ username, password }) => {
-  const url = `${BACKEND_URL}${LOGIN_ENDPOINT}`;
+  const url = `${API_BASE_URL}${LOGIN_ENDPOINT}`;
 
   try {
     const response = await fetch(url, {

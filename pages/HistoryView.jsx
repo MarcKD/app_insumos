@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../src/config';
 import { Clock, User, ArrowRight, Search } from 'lucide-react';
 
 const HistoryView = () => {
@@ -9,7 +10,7 @@ const HistoryView = () => {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                const response = await fetch('http://localhost:3001/api/historial');
+                const response = await fetch(`${API_BASE_URL}/api/historial`);
                 if (response.ok) {
                     const data = await response.json();
                     setHistory(data);
