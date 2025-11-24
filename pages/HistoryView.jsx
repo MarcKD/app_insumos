@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../src/config';
 import { Clock, User, ArrowRight, Search } from 'lucide-react';
+import Pagination from '../components/Pagination';
 
-const HistoryView = () => {
+const HistoryView = ({ currentPage, onPageChange }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const itemsPerPage = 9;
 
+    // Fetch history from API
     useEffect(() => {
         const fetchHistory = async () => {
+            setLoading(true);
             try {
                 const response = await fetch(`${API_BASE_URL}/api/historial`);
                 if (response.ok) {
@@ -17,6 +21,7 @@ const HistoryView = () => {
                 }
             } catch (error) {
                 console.error("Failed to fetch history:", error);
+                // Consider adding a toast notification here as well
             } finally {
                 setLoading(false);
             }
@@ -24,19 +29,34 @@ const HistoryView = () => {
 
         fetchHistory();
     }, []);
+    
+    // Effect to reset page when search term changes
+    useEffect(() => {
+        if (currentPage !== 1) {
+            onPageChange(1);
+        }
+    }, [searchTerm]);
 
+    // Filter history based on search term
     const filteredHistory = history.filter(item => {
         const term = searchTerm.toLowerCase();
         const itemDate = new Date(item.fecha).toLocaleString().toLowerCase();
-
+        
         return (
-            item.usuario.toLowerCase().includes(term) ||
+            (item.usuario && item.usuario.toLowerCase().includes(term)) ||
             itemDate.includes(term) ||
-            item.producto_descripcion.toLowerCase().includes(term) ||
-            item.producto_codigo.toLowerCase().includes(term) ||
-            item.area.toLowerCase().includes(term)
+            (item.producto_descripcion && item.producto_descripcion.toLowerCase().includes(term)) ||
+            (item.producto_codigo && item.producto_codigo.toLowerCase().includes(term)) ||
+            (item.area && item.area.toLowerCase().includes(term))
         );
     });
+
+    // Paginate the filtered data
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = filteredHistory.slice(indexOfFirstItem, indexOfLastItem);
+    const totalItems = filteredHistory.length;
+
 
     if (loading) {
         return <div className="p-10 text-center text-slate-500">Cargando historial...</div>;
@@ -78,7 +98,7 @@ const HistoryView = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {filteredHistory.map((item) => (
+                            {currentItems.map((item) => (
                                 <tr key={item.id} className="hover:bg-slate-50 transition-colors text-sm text-slate-700">
                                     <td className="p-4 whitespace-nowrap text-slate-500">
                                         {new Date(item.fecha).toLocaleString()}
@@ -103,17 +123,22 @@ const HistoryView = () => {
                                     <td className="p-4 text-slate-500">{item.area}</td>
                                 </tr>
                             ))}
-                            {filteredHistory.length === 0 && !loading && (
-                                <tr>
-                                    <td colSpan="5" className="p-8 text-center text-slate-400">
-                                        No se encontraron movimientos con ese criterio.
-                                    </td>
-                                </tr>
-                            )}
                         </tbody>
                     </table>
+                     {totalItems === 0 && !loading && (
+                        <div className="p-8 text-center text-slate-400">
+                            No se encontraron movimientos con ese criterio de búsqueda.
+                        </div>
+                    )}
                 </div>
             </div>
+            
+            <Pagination
+                itemsPerPage={itemsPerPage}
+                totalItems={totalItems}
+                currentPage={currentPage}
+                onPageChange={onPageChange}
+            />
         </div>
     );
 };

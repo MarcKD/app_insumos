@@ -24,6 +24,7 @@ const App = () => {
   // --- Estado de la Navegación ---
   const [activeTab, setActiveTab] = useState('inicio');
   const [currentPage, setCurrentPage] = useState(1);
+  const [historyCurrentPage, setHistoryCurrentPage] = useState(1);
 
   // --- Estado del Modal ---
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,6 +57,7 @@ const App = () => {
   // Reset page when tab changes
   useEffect(() => {
     setCurrentPage(1);
+    setHistoryCurrentPage(1);
   }, [activeTab]);
 
   // --- Lógica de "A Pedir" (Global para el Badge) ---
@@ -183,7 +185,12 @@ const App = () => {
         )}
 
         {activeTab === 'estadistico' && <EstadisticoView />}
-        {activeTab === 'historial' && <HistoryView />}
+        {activeTab === 'historial' && (
+          <HistoryView
+            currentPage={historyCurrentPage}
+            onPageChange={setHistoryCurrentPage}
+          />
+        )}
       </main>
 
       <ProductModal
