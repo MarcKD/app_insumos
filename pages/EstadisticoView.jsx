@@ -1,6 +1,7 @@
 import { API_BASE_URL } from '../src/config';
 import React, { useState, useEffect, useCallback } from 'react';
-import { BarChart3, TrendingDown, Search, XCircle } from 'lucide-react';
+import Papa from 'papaparse';
+import { BarChart3, TrendingDown, Search, XCircle, FileDown } from 'lucide-react';
 import { useDebounce } from '../src/hooks/useDebounce';
 
 const EstadisticoView = () => {
@@ -65,6 +66,27 @@ const EstadisticoView = () => {
         setEndDate('');
     };
 
+    const handleExport = () => {
+        const dataToExport = stats.map(item => ({
+            'Código': item.code,
+            'Descripción': item.description,
+            'Área': item.area,
+            'Stock Actual': item.stock,
+            'Consumo Total': item.total_consumo,
+        }));
+
+        const csv = Papa.unparse(dataToExport);
+        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        const date = new Date().toISOString().slice(0, 10);
+        link.setAttribute('download', `estadisticas_consumo_${date}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
         <div className="container mx-auto p-4 md:p-6 animate-fade-in">
             {/* Header and Title */}
@@ -77,47 +99,59 @@ const EstadisticoView = () => {
             </div>
 
             {/* Filter Controls */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6 p-4 bg-white rounded-xl shadow-sm border border-slate-200">
-                <div className="relative lg:col-span-2">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="text-slate-400" size={20} />
+            <div className="mb-6 p-4 bg-white rounded-xl shadow-sm border border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="relative lg:col-span-2">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="text-slate-400" size={20} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Buscar por código o descripción..."
+                            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
+                    <select
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                        value={selectedArea}
+                        onChange={(e) => setSelectedArea(e.target.value)}
+                    >
+                        <option value="">Todas las Áreas</option>
+                        {areas.map(a => <option key={a.id} value={a.nombre}>{a.nombre}</option>)}
+                    </select>
                     <input
-                        type="text"
-                        placeholder="Buscar por código o descripción..."
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        type="date"
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        title="Fecha de inicio"
+                    />
+                    <input
+                        type="date"
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        title="Fecha de fin"
                     />
                 </div>
-                <select
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                    value={selectedArea}
-                    onChange={(e) => setSelectedArea(e.target.value)}
-                >
-                    <option value="">Todas las Áreas</option>
-                    {areas.map(a => <option key={a.id} value={a.nombre}>{a.nombre}</option>)}
-                </select>
-                <input
-                    type="date"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    title="Fecha de inicio"
-                />
-                <input
-                    type="date"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    title="Fecha de fin"
-                />
-                <button
-                    onClick={resetFilters}
-                    className="lg:col-start-5 text-slate-500 hover:text-red-600 flex items-center justify-center gap-2 text-sm"
-                >
-                    <XCircle size={16} /> Limpiar Filtros
-                </button>
+                <div className="flex flex-wrap items-center justify-end gap-4 mt-4 pt-4 border-t border-slate-100">
+                     <button
+                        onClick={resetFilters}
+                        className="text-slate-500 hover:text-red-600 flex items-center gap-2 text-sm font-medium"
+                    >
+                        <XCircle size={16} /> Limpiar Filtros
+                    </button>
+                    <button
+                        onClick={handleExport}
+                        disabled={stats.length === 0}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 font-medium shadow-sm disabled:bg-green-300 disabled:cursor-not-allowed"
+                    >
+                        <FileDown size={18} />
+                        Exportar
+                    </button>
+                </div>
             </div>
 
             {/* Stats Table */}
@@ -163,7 +197,6 @@ const EstadisticoView = () => {
                 </div>
             </div>
         </div>
-    );
-};
+    );};
 
 export default EstadisticoView;

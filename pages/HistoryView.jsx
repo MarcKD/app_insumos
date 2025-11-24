@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import Papa from 'papaparse';
 import { API_BASE_URL } from '../src/config';
-import { Clock, User, ArrowRight, Search } from 'lucide-react';
+import { Clock, User, ArrowRight, Search, FileDown } from 'lucide-react';
 import Pagination from '../components/Pagination';
 
 const HistoryView = ({ currentPage, onPageChange }) => {
@@ -21,12 +22,10 @@ const HistoryView = ({ currentPage, onPageChange }) => {
                 }
             } catch (error) {
                 console.error("Failed to fetch history:", error);
-                // Consider adding a toast notification here as well
             } finally {
                 setLoading(false);
             }
         };
-
         fetchHistory();
     }, []);
     
@@ -57,6 +56,29 @@ const HistoryView = ({ currentPage, onPageChange }) => {
     const currentItems = filteredHistory.slice(indexOfFirstItem, indexOfLastItem);
     const totalItems = filteredHistory.length;
 
+    const handleExport = () => {
+        const dataToExport = filteredHistory.map(item => ({
+            'Fecha': new Date(item.fecha).toLocaleString('es-AR'),
+            'Usuario': item.usuario,
+            'Producto (Descripción)': item.producto_descripcion,
+            'Producto (Código)': item.producto_codigo,
+            'Cantidad Anterior': item.cantidad_anterior,
+            'Cantidad Nueva': item.cantidad_nueva,
+            'Cambio': item.cantidad_nueva - item.cantidad_anterior,
+            'Área': item.area,
+        }));
+
+        const csv = Papa.unparse(dataToExport);
+        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        const date = new Date().toISOString().slice(0, 10);
+        link.setAttribute('download', `historial_insumos_${date}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     if (loading) {
         return <div className="p-10 text-center text-slate-500">Cargando historial...</div>;
@@ -71,17 +93,27 @@ const HistoryView = ({ currentPage, onPageChange }) => {
                         Historial de Movimientos
                     </h2>
                 </div>
-                <div className="relative w-full md:w-96">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Search className="text-slate-400" size={20} />
+                <div className="flex items-center gap-2 w-full md:w-auto">
+                     <div className="relative w-full md:w-96">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="text-slate-400" size={20} />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Filtrar por usuario, fecha, producto, área..."
+                            className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
-                    <input
-                        type="text"
-                        placeholder="Filtrar por usuario, fecha, producto, área..."
-                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                    <button
+                        onClick={handleExport}
+                        disabled={filteredHistory.length === 0}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 font-medium shadow-sm disabled:bg-green-300 disabled:cursor-not-allowed"
+                    >
+                        <FileDown size={18} />
+                        Exportar
+                    </button>
                 </div>
             </div>
 
@@ -140,7 +172,6 @@ const HistoryView = ({ currentPage, onPageChange }) => {
                 onPageChange={onPageChange}
             />
         </div>
-    );
-};
+    );};
 
 export default HistoryView;
