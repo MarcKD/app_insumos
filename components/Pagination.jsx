@@ -14,7 +14,7 @@ const Pagination = ({ itemsPerPage, totalItems, onPageChange, currentPage }) => 
     }
 
     return (
-        <div className="flex justify-center items-center gap-2 mt-6">
+        <div className="flex flex-wrap justify-center items-center gap-x-2 gap-y-3 mt-6">
             <button
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={currentPage === 1}
