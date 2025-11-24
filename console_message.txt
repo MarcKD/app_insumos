@@ -1,0 +1,9 @@
+Ya tienes `concurrently` instalado y configurado en tu `package.json`. No necesitas instalarlo de nuevo.
+
+Puedes iniciar tanto el frontend como el backend en una sola terminal ejecutando el siguiente comando:
+
+```bash
+npm run dev:network
+```
+
+Este comando utilizará `concurrently` para ejecutar `vite --host` (para el frontend) y `npm run start:backend` (para el backend) simultáneamente.
