@@ -1,84 +1,108 @@
-📦 app-insumos
+# 📦 app-insumos
 
-Bienvenido al repositorio de app-insumos, una aplicación web moderna diseñada para optimizar el control de inventario, gestión de stock y pedidos de insumos empresariales.
+Bienvenido al repositorio de **app-insumos**, una aplicación web moderna diseñada para optimizar el control de inventario, gestión de stock y pedidos de insumos empresariales.
 
-🚀 Características Principales
+## 🚀 Características Principales
 
-Dashboard Interactivo: Vista general del estado del inventario.
+*   **Dashboard Interactivo:** Vista general del estado del inventario.
+*   **Gestión de Stock:** Visualización de insumos con indicadores de alertas (semáforo) para stock bajo.
+*   **Buscador Inteligente:** Filtrado en tiempo real por descripción, código, proveedor o área.
+*   **Sistema "A Pedir":** Cálculo automático de cantidades de compra basado en mínimos y máximos.
+*   **Historial de Movimientos:** Registro detallado de quién modificó el stock y para qué área.
+*   **Seguridad:** Módulo de autenticación integrado con usuarios internos y Odoo.
 
-Gestión de Stock: Visualización de insumos con indicadores de alertas (semáforo) para stock bajo.
+## 🛠️ Tecnologías Utilizadas
 
-Buscador Inteligente: Filtrado en tiempo real por descripción, código, proveedor o área (incluso con palabras desordenadas).
+Este proyecto es full-stack, utilizando tecnologías modernas:
 
-Sistema "A Pedir": Cálculo automático de cantidades de compra basado en mínimos y máximos establecidos.
+**Frontend:**
+*   React (v18+)
+*   Tailwind CSS (Estilos)
+*   Lucide React (Iconos)
+*   Vite (Build tool)
 
-Seguridad: Módulo de autenticación (Login) para proteger el acceso.
+**Backend:**
+*   Node.js
+*   Express.js
+*   PostgreSQL (`pg` driver)
 
-🛠️ Tecnologías Utilizadas
+## ⚙️ Configuración de Usuarios y Áreas (Importante)
 
-Este proyecto está construido con un stack moderno enfocado en el rendimiento y la experiencia de usuario:
+Para que el historial de movimientos refleje correctamente el área operativa (ej. Depósito, Ventas, Limpieza), cada usuario debe tener asignada un área en la base de datos.
 
-Frontend: React (v18+)
+### Asignación de Áreas
 
-Lenguaje: JavaScript (ES6+)
+Se ha incluido un script de utilidad para facilitar esta tarea sin acceder directamente a la base de datos.
 
-Estilos: Tailwind CSS (Diseño responsivo y utilitario)
+**Uso del comando:**
+```bash
+node assign_user_area.cjs <email_o_usuario> <nombre_area_o_id>
+```
 
-Iconos: Lucide React
+**Ejemplos:**
 
-Empaquetador: Vite
+1.  Asignar el área "Deposito" al usuario `deposito@wstandard.com.ar`:
+    ```bash
+    node assign_user_area.cjs deposito@wstandard.com.ar Deposito
+    ```
 
-📂 Estructura del Proyecto
+2.  Asignar usando el ID del área (si se conoce):
+    ```bash
+    node assign_user_area.cjs usuario.nuevo 4
+    ```
 
-El proyecto sigue una arquitectura modular para facilitar el mantenimiento:
+**Áreas disponibles (IDs comunes):**
+*   1: Sistemas
+*   2: Deposito
+*   3: Full
+*   4: Catalogación
+*   5: Distri
+*   6: MercadoLibre
+*   7: Recepción
+*   8: Limpieza
+*   9: Administración
 
-app_insumos/
-├── src/
-│   ├── assets/         # Imágenes y recursos estáticos
-│   ├── components/     # Componentes reutilizables (Navbar, Modals, Tables)
-│   ├── pages/          # Vistas principales (Inicio, APedir, Historial)
-│   ├── context/        # Manejo del estado global (AuthContext)
-│   ├── App.jsx         # Componente raíz
-│   └── main.jsx        # Punto de entrada
-├── public/             # Archivos públicos
-├── package.json        # Dependencias y scripts del proyecto
-├── tailwind.config.js  # Configuración de estilos
-└── README.md           # Documentación
+> **Nota:** Los usuarios deben volver a iniciar sesión para que los cambios de área surtan efecto.
 
+## 📂 Estructura y Scripts de Mantenimiento
 
-🔧 Instalación y Uso
+Además del código fuente principal, en la raíz del proyecto encontrarás scripts `.cjs` útiles para el mantenimiento de la base de datos:
 
-Para correr este proyecto localmente, necesitas tener instalado Node.js.
+*   `server.js`: El servidor principal de la aplicación.
+*   `assign_user_area.cjs`: Asigna áreas a usuarios (ver arriba).
+*   `check_db.cjs` / `check_tables.cjs`: Diagnóstico de tablas y conexión.
+*   `create_*.cjs`: Scripts de migración para crear tablas (`historial`, `pedidos`, `usuario_areas`).
+*   `fix_*.cjs`: Scripts para correcciones puntuales en datos o estructura.
 
-Clonar el repositorio:
+## 🔧 Instalación y Ejecución
 
-git clone [https://github.com/marckd/app_insumos.git](https://github.com/marckd/app_insumos.git)
-cd app_insumos
+1.  **Instalar dependencias:**
+    ```bash
+    npm install
+    ```
 
+2.  **Base de Datos:**
+    Asegúrate de tener acceso a la instancia de PostgreSQL configurada en `server.js`.
 
-Instalar dependencias:
+3.  **Ejecución (Desarrollo):**
+    Para levantar tanto el frontend como el backend simultáneamente (recomendado):
+    ```bash
+    npm run dev:network
+    ```
 
-npm install
+    O individualmente:
+    *   Backend: `npm run start:backend`
+    *   Frontend: `npm run dev`
 
+4.  **Acceso:**
+    La aplicación estará disponible generalmente en `http://localhost:5173`.
 
-Iniciar el servidor de desarrollo:
+## 🤝 Contribución
 
-npm run dev
+1.  Haz un Fork del proyecto.
+2.  Crea una rama para tu funcionalidad (`git checkout -b feature/NuevaFuncionalidad`).
+3.  Haz Commit de tus cambios (`git commit -m 'Agregada nueva funcionalidad'`).
+4.  Abre un Pull Request.
 
-
-Abrir en el navegador:
-Visita http://localhost:5173 (o el puerto que indique la terminal).
-
-🤝 Contribución
-
-Haz un Fork del proyecto.
-
-Crea una rama para tu funcionalidad (git checkout -b feature/NuevaFuncionalidad).
-
-Haz Commit de tus cambios (git commit -m 'Agregada nueva funcionalidad').
-
-Haz Push a la rama (git push origin feature/NuevaFuncionalidad).
-
-Abre un Pull Request.
-
+---
 Desarrollado para la gestión eficiente de insumos.

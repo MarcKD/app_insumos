@@ -1,10 +1,10 @@
 import { API_BASE_URL } from '../src/config';
 import React, { useState, useEffect, useCallback } from 'react';
-import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { BarChart3, TrendingDown, Search, XCircle, FileDown } from 'lucide-react';
 import { useDebounce } from '../src/hooks/useDebounce';
 
-const EstadisticoView = () => {
+const EstadisticoView = ({ user }) => {
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -35,8 +35,10 @@ const EstadisticoView = () => {
 
     // Fetch stats based on filters
     const fetchStats = useCallback(async () => {
+        if (!user || !user.username) return;
         setLoading(true);
         const params = new URLSearchParams();
+        params.append('username', user.username);
         if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
         if (selectedArea) params.append('area', selectedArea);
         if (startDate) params.append('startDate', startDate);
@@ -53,7 +55,7 @@ const EstadisticoView = () => {
         } finally {
             setLoading(false);
         }
-    }, [debouncedSearchTerm, selectedArea, startDate, endDate]);
+    }, [debouncedSearchTerm, selectedArea, startDate, endDate, user]);
 
     useEffect(() => {
         fetchStats();
@@ -74,17 +76,23 @@ const EstadisticoView = () => {
             'Stock Actual': item.stock,
             'Consumo Total': item.total_consumo,
         }));
-
-        const csv = Papa.unparse(dataToExport);
-        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
+    
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Estadisticas");
+    
+        // Define column widths
+        const columnWidths = [
+            { wch: 20 }, // Código
+            { wch: 40 }, // Descripción
+            { wch: 20 }, // Área
+            { wch: 15 }, // Stock Actual
+            { wch: 20 }, // Consumo Total
+        ];
+        worksheet['!cols'] = columnWidths;
+    
         const date = new Date().toISOString().slice(0, 10);
-        link.setAttribute('download', `estadisticas_consumo_${date}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        XLSX.writeFile(workbook, `estadisticas_consumo_${date}.xlsx`);
     };
 
     return (

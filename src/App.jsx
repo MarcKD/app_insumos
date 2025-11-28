@@ -4,6 +4,7 @@ import ProductModal from "../components/ProductModal";
 import Login from "../pages/Login";
 import HomeView from '../pages/HomeView';
 import OrderView from '../pages/OrderView';
+import PedidosView from '../pages/PedidosView';
 import HistoryView from '../pages/HistoryView';
 import EstadisticoView from '../pages/EstadisticoView';
 
@@ -32,11 +33,20 @@ const App = () => {
 
   // --- Estado de Datos ---
   const [inventory, setInventory] = useState([]);
+  const [orderedItems, setOrderedItems] = useState(() => {
+    const saved = localStorage.getItem('ordered_items');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ordered_items', JSON.stringify(orderedItems));
+  }, [orderedItems]);
 
   // --- Fetch Inventory ---
   const fetchInventory = async () => {
+    if (!user || !user.username) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/productos`);
+      const response = await fetch(`${API_BASE_URL}/api/productos?username=${user.username}`);
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
@@ -49,10 +59,10 @@ const App = () => {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       fetchInventory();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user]);
 
   // Reset page when tab changes
   useEffect(() => {
@@ -61,7 +71,9 @@ const App = () => {
   }, [activeTab]);
 
   // --- Lógica de "A Pedir" (Global para el Badge) ---
-  const itemsToOrder = inventory.filter(item => item.stock <= item.min).map(item => ({
+  const itemsToOrder = inventory.filter(item => item.stock <= item.min)
+    .filter(item => !orderedItems.includes(item.id)) // Exclude ordered items
+    .map(item => ({
     ...item,
     suggestedOrder: item.max - item.stock
   }));
@@ -125,12 +137,14 @@ const App = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           change,
-          usuario: user.username || user.display_name || 'Usuario',
-          area: user.area || 'General'
+          usuario: user.username || user.display_name || 'Usuario'
         }),
       });
 
       if (response.ok) {
+        // If stock is updated, we can assume the order was received.
+        // Remove from orderedItems if it's there.
+        setOrderedItems(orderedItems.filter(orderedId => orderedId !== id));
         await fetchInventory();
       } else {
         const errorData = await response.json();
@@ -141,11 +155,23 @@ const App = () => {
       toast.error('Error de conexión al actualizar stock.');
     }
   };
+
+  const handleOrderPlaced = (orderedIds) => {
+    // This logic might need revision if it conflicts with the DB state.
+    // For now, it visually removes items from the "A Pedir" list immediately.
+    setOrderedItems(prev => [...prev, ...orderedIds]);
+  };
   
+  const handleReception = async () => {
+    // Refreshes the main inventory to reflect the new stock.
+    await fetchInventory();
+  };
+
   const handleEditClick = (product) => {
     setEditingProduct(product);
     setIsModalOpen(true);
   };
+
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -156,6 +182,15 @@ const App = () => {
   if (!isAuthenticated) {
     return <Login onLogin={handleLogin} />;
   }
+
+  const hasAccess = (tabId) => {
+    const role = user?.role;
+    if (!role) return false;
+    if (role === 'SuperAdmin') return true;
+    if (role === 'Admin') return ['inicio', 'pedir', 'pedidos'].includes(tabId);
+    if (role === 'Usuario') return ['inicio'].includes(tabId);
+    return false;
+  };
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans">
@@ -169,7 +204,7 @@ const App = () => {
       />
 
       <main className="pb-20">
-        {activeTab === 'inicio' && (
+        {activeTab === 'inicio' && hasAccess('inicio') && (
           <HomeView
             inventory={inventory}
             onAddClick={() => setIsModalOpen(true)}
@@ -180,13 +215,25 @@ const App = () => {
           />
         )}
 
-        {activeTab === 'pedir' && (
-          <OrderView itemsToOrder={itemsToOrder} />
+        {activeTab === 'pedir' && hasAccess('pedir') && (
+          <OrderView
+            itemsToOrder={itemsToOrder}
+            onOrderPlaced={handleOrderPlaced}
+            user={user}
+          />
         )}
 
-        {activeTab === 'estadistico' && <EstadisticoView />}
-        {activeTab === 'historial' && (
+        {activeTab === 'pedidos' && hasAccess('pedidos') && (
+          <PedidosView 
+            user={user}
+            onReception={handleReception}
+          />
+        )}
+
+        {activeTab === 'estadistico' && hasAccess('estadistico') && <EstadisticoView user={user} />}
+        {activeTab === 'historial' && hasAccess('historial') && (
           <HistoryView
+            user={user}
             currentPage={historyCurrentPage}
             onPageChange={setHistoryCurrentPage}
           />

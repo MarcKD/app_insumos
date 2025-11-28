@@ -1,33 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import Papa from 'papaparse';
+import React, { useState, useEffect, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import { API_BASE_URL } from '../src/config';
-import { Clock, User, ArrowRight, Search, FileDown } from 'lucide-react';
+import { Clock, User, ArrowRight, Search, FileDown, RefreshCw } from 'lucide-react';
 import Pagination from '../components/Pagination';
 
-const HistoryView = ({ currentPage, onPageChange }) => {
+const HistoryView = ({ user, currentPage, onPageChange }) => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const itemsPerPage = 9;
 
-    // Fetch history from API
-    useEffect(() => {
-        const fetchHistory = async () => {
-            setLoading(true);
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/historial`);
-                if (response.ok) {
-                    const data = await response.json();
-                    setHistory(data);
-                }
-            } catch (error) {
-                console.error("Failed to fetch history:", error);
-            } finally {
-                setLoading(false);
+    const fetchHistory = useCallback(async () => {
+        if (!user || !user.username) return;
+        setLoading(true);
+        console.log('Fetching history from API...');
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/historial?username=${user.username}`, {
+                cache: 'no-store' // Do not use cache
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setHistory(data);
+            } else {
+                console.error("Failed to fetch history with status:", response.status);
             }
-        };
+        } catch (error) {
+            console.error("Failed to fetch history:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
+
+    useEffect(() => {
         fetchHistory();
-    }, []);
+    }, [fetchHistory]);
     
     // Effect to reset page when search term changes
     useEffect(() => {
@@ -67,17 +73,26 @@ const HistoryView = ({ currentPage, onPageChange }) => {
             'Cambio': item.cantidad_nueva - item.cantidad_anterior,
             'Área': item.area,
         }));
-
-        const csv = Papa.unparse(dataToExport);
-        const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
+    
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Historial");
+    
+        // Define column widths
+        const columnWidths = [
+            { wch: 20 }, // Fecha
+            { wch: 20 }, // Usuario
+            { wch: 40 }, // Producto (Descripción)
+            { wch: 20 }, // Producto (Código)
+            { wch: 15 }, // Cantidad Anterior
+            { wch: 15 }, // Cantidad Nueva
+            { wch: 10 }, // Cambio
+            { wch: 20 }, // Área
+        ];
+        worksheet['!cols'] = columnWidths;
+    
         const date = new Date().toISOString().slice(0, 10);
-        link.setAttribute('download', `historial_insumos_${date}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        XLSX.writeFile(workbook, `historial_insumos_${date}.xlsx`);
     };
 
     if (loading) {
@@ -113,6 +128,12 @@ const HistoryView = ({ currentPage, onPageChange }) => {
                     >
                         <FileDown size={18} />
                         Exportar
+                    </button>
+                    <button
+                        onClick={fetchHistory}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 font-medium shadow-sm"
+                    >
+                        <RefreshCw size={18} />
                     </button>
                 </div>
             </div>
